@@ -142,8 +142,9 @@
 
     .windshield {
       position: relative;
-      aspect-ratio: 16 / 10;
-      max-height: min(48vh, 400px);
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      max-height: min(58vh, 520px);
       border-radius: 18px 18px 4px 4px;
       overflow: hidden;
       background: #050608;
@@ -158,16 +159,15 @@
       position: absolute;
       inset: 0;
       pointer-events: none;
-      z-index: 2;
-      background:
-        linear-gradient(165deg, rgba(255, 255, 255, 0.14) 0%, transparent 28%),
-        linear-gradient(200deg, transparent 60%, rgba(0, 0, 0, 0.35));
+      z-index: 1;
+      background: linear-gradient(165deg, rgba(255, 255, 255, 0.1) 0%, transparent 22%);
     }
 
     .windshield video {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
+      object-position: center center;
       display: block;
       background: #000;
     }
@@ -194,23 +194,12 @@
       z-index: 1;
     }
 
-    .video-status {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 2;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px 12px;
-      padding: 4px 10px;
-      font-size: 11px;
-      background: linear-gradient(to top, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.25));
-      pointer-events: none;
-    }
-
     .below-windshield {
       padding: 8px 12px 0;
+    }
+
+    .below-windshield .status-bar {
+      justify-content: space-between;
     }
 
     .below-windshield .cue {
@@ -232,8 +221,7 @@
       color: #b8f5d0;
     }
 
-    .status-bar strong,
-    .video-status strong {
+    .status-bar strong {
       color: #7ee0a8;
       font-variant-numeric: tabular-nums;
     }
@@ -557,9 +545,6 @@
             <source id="lesson-video-builtin" src="media/subject3.mp4" type="video/mp4" />
           </video>
           <div class="video-empty" id="video-placeholder" hidden>内置视频加载中…</div>
-          <div class="video-status status-bar--overlay" aria-hidden="true">
-            <span>时间 <strong id="time-display">00:00</strong> / <strong id="dur-display">--:--</strong></span>
-          </div>
         </section>
         <div class="a-pillar right" aria-hidden="true"></div>
       </div>
@@ -571,6 +556,7 @@
           <p class="sub" id="cue-hint" style="margin-top:4px;font-size:11px;"></p>
         </div>
         <div class="status-bar">
+          <span>时间 <strong id="time-display">00:00</strong> / <strong id="dur-display">--:--</strong></span>
           <span>得分 <strong id="score">0</strong></span>
           <span>失误 <strong id="mistakes">0</strong></span>
         </div>
