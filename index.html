@@ -296,33 +296,54 @@
 
     .controls-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
-      gap: 6px;
+      grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+      gap: 5px;
     }
 
     .controls-grid-gear {
       grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 6px;
+      gap: 5px;
     }
 
-    @media (max-width: 520px) {
-      .controls-grid-gear {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
+    .controls-grid-quick {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 5px;
+      margin-bottom: 2px;
+    }
+
+    .controls-grid-quick .ctrl {
+      max-width: none;
+      width: 100%;
+      aspect-ratio: auto;
+      min-height: 46px;
+      border-radius: 12px;
+      flex-direction: row;
+      justify-content: center;
+      gap: 5px;
+      padding: 6px 8px;
+    }
+
+    .controls-grid-quick .ctrl .icon {
+      font-size: 16px;
+    }
+
+    .controls-grid-quick .ctrl .label-text {
+      font-size: 10px;
+      white-space: nowrap;
     }
 
     .ctrl-gear {
       max-width: none;
       width: 100%;
       aspect-ratio: auto;
-      min-height: 50px;
-      border-radius: 11px;
-      font-size: 13px;
+      min-height: 46px;
+      border-radius: 10px;
+      font-size: 12px;
       font-weight: 800;
     }
 
     .ctrl-gear .icon {
-      font-size: 20px;
+      font-size: 17px;
       font-weight: 800;
     }
 
@@ -331,19 +352,19 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 3px;
-      min-height: 58px;
-      padding: 6px 4px;
+      gap: 2px;
+      min-height: 52px;
+      padding: 5px 3px;
       border-radius: 50%;
       width: 100%;
-      max-width: 76px;
+      max-width: 68px;
       margin: 0 auto;
       aspect-ratio: 1;
       border: 2px solid #3d4550;
       background: radial-gradient(circle at 35% 30%, #4a545f, #2a3139 65%);
       color: #e8ecef;
       font: inherit;
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 600;
       cursor: pointer;
       transition: background 0.2s, border-color 0.2s, transform 0.12s, box-shadow 0.2s;
@@ -355,8 +376,16 @@
     }
 
     .ctrl .icon {
-      font-size: 17px;
+      font-size: 15px;
       line-height: 1;
+    }
+
+    .ctrl .label-text {
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      line-height: 1.1;
     }
 
     .ctrl:active {
@@ -813,6 +842,221 @@
       background: rgba(62, 181, 117, 0.1);
     }
 
+    @media (max-width: 520px) {
+      .app {
+        padding: 6px 6px calc(10px + env(safe-area-inset-bottom));
+      }
+
+      h1 {
+        font-size: 15px;
+      }
+
+      .sub {
+        font-size: 11px;
+      }
+
+      .btn {
+        padding: 5px 8px;
+        font-size: 11px;
+        border-radius: 8px;
+      }
+
+      .windshield {
+        max-height: min(40vh, 280px);
+        border-width: 2px;
+      }
+
+      .below-windshield .cue {
+        padding: 8px 10px;
+      }
+
+      .cue-text {
+        font-size: 13px;
+      }
+
+      .controls-grid {
+        grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+        gap: 4px;
+      }
+
+      .controls-grid-gear {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 3px;
+      }
+
+      .controls-grid-quick {
+        gap: 4px;
+      }
+
+      .controls-grid-quick .ctrl {
+        min-height: 40px;
+        padding: 4px 5px;
+        gap: 3px;
+        border-radius: 10px;
+      }
+
+      .controls-grid-quick .ctrl .icon {
+        font-size: 14px;
+      }
+
+      .controls-grid-quick .ctrl .label-text {
+        font-size: 8px;
+      }
+
+      .ctrl {
+        min-height: 44px;
+        max-width: 52px;
+        padding: 3px 2px;
+        font-size: 7px;
+        gap: 1px;
+        border-width: 1.5px;
+        box-shadow:
+          0 2px 0 #15191e,
+          inset 0 1px 3px rgba(255, 255, 255, 0.1);
+      }
+
+      .ctrl .icon {
+        font-size: 13px;
+      }
+
+      .ctrl-gear {
+        min-height: 38px;
+        font-size: 10px;
+        border-radius: 8px;
+      }
+
+      .ctrl-gear .icon {
+        font-size: 14px;
+      }
+
+      .ctrl-pedal {
+        min-height: 44px;
+        gap: 8px;
+        font-size: 9px;
+      }
+
+      .dash-cockpit {
+        gap: 4px;
+      }
+
+      .turn-stalk {
+        width: 68px;
+        height: 100px;
+        border-radius: 8px;
+      }
+
+      .turn-stalk-stick {
+        height: 72px;
+        bottom: 8px;
+        width: 6px;
+        margin-left: -3px;
+      }
+
+      .turn-lever-arm {
+        width: 56px;
+        height: 22px;
+        margin-left: -28px;
+        top: 14px;
+      }
+
+      .lever-long-bar {
+        top: 7px;
+        height: 8px;
+      }
+
+      .stalk-hint {
+        font-size: 7px;
+      }
+
+      .turn-stalk-label {
+        font-size: 7px;
+      }
+
+      .handbrake-slot {
+        width: 48px;
+        height: 88px;
+      }
+
+      .handbrake-lever {
+        width: 32px;
+        height: 70px;
+        margin-left: -16px;
+        bottom: 10px;
+      }
+
+      .hb-knob {
+        width: 28px;
+        height: 28px;
+        border-width: 1.5px;
+      }
+
+      .hb-rod {
+        min-height: 36px;
+        width: 5px;
+      }
+
+      .pedal-well {
+        padding: 8px 8px 10px;
+        margin-top: 2px;
+      }
+
+      .pedal-well-label {
+        font-size: 8px;
+        margin-bottom: 4px;
+      }
+
+      .brake-pedal {
+        width: 52px;
+        height: 78px;
+      }
+
+      .brake-pedal .pedal-pad {
+        width: 48px;
+        height: 38px;
+        margin-left: -24px;
+        bottom: 36px;
+      }
+
+      .brake-pedal .pedal-pad::after {
+        padding-top: 10px;
+        font-size: 9px;
+      }
+
+      .brake-pedal .pedal-arm {
+        height: 36px;
+        width: 12px;
+        margin-left: -6px;
+      }
+
+      .console-surface {
+        padding: 6px 6px 8px;
+      }
+
+      .console-title {
+        font-size: 9px;
+        margin-bottom: 6px;
+      }
+
+      .ctrl-group-head {
+        font-size: 9px;
+        margin-bottom: 4px;
+      }
+
+      .interior {
+        padding: 6px 6px 8px;
+      }
+
+      .state-row {
+        font-size: 9px;
+        gap: 4px;
+        margin-top: 6px;
+      }
+
+      .chip {
+        padding: 2px 5px;
+      }
+    }
+
     footer {
       margin-top: 10px;
       font-size: 11px;
@@ -944,8 +1188,8 @@
     const ACTION_MAP = Object.fromEntries(ACTIONS.map((a) => [a.id, a]));
 
     const CONTROL_GROUPS = [
+      { ids: ["hazard", "wiper", "horn"], quickRow: true },
       { title: "灯光组合", ids: ["low-beam", "high-beam", "beam-flash", "position-light", "fog-lights", "lights-off"] },
-      { title: "双闪 / 雨刮 / 喇叭", ids: ["hazard", "wiper", "horn"] },
       { title: "挂挡（空挡 + 1～5挡）", ids: ["gear-n", "gear-1", "gear-2", "gear-3", "gear-4", "gear-5"], gearGrid: true },
     ];
 
@@ -1069,7 +1313,7 @@
       btn.className = cls;
       btn.dataset.action = action.id;
       btn.title = action.label;
-      btn.innerHTML = `<span class="icon">${action.icon}</span><span>${action.label}</span>`;
+      btn.innerHTML = `<span class="icon">${action.icon}</span><span class="label-text">${action.label}</span>`;
       btn.addEventListener("click", () => onControlPress(action.id, btn));
       return btn;
     }
@@ -1159,9 +1403,17 @@
       center.className = "dash-center";
       CONTROL_GROUPS.forEach((group) => {
         const section = document.createElement("div");
-        section.innerHTML = `<p class="ctrl-group-head">${group.title}</p>`;
+        if (group.title) {
+          const head = document.createElement("p");
+          head.className = "ctrl-group-head";
+          head.textContent = group.title;
+          section.appendChild(head);
+        }
         const grid = document.createElement("div");
-        grid.className = "controls-grid" + (group.gearGrid ? " controls-grid-gear" : "");
+        grid.className =
+          "controls-grid" +
+          (group.gearGrid ? " controls-grid-gear" : "") +
+          (group.quickRow ? " controls-grid-quick" : "");
         group.ids.forEach((id) => {
           const action = ACTION_MAP[id];
           if (!action) return;
