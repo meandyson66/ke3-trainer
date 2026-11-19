@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a2e24" />
+  <title>科目三 · 视频同步模拟训练</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: rgba(28, 38, 34, 0.92);
+      --glass: rgba(255, 255, 255, 0.08);
+      --border: rgba(255, 255, 255, 0.12);
+      --text: #e8f0ec;
+      --muted: rgba(232, 240, 236, 0.62);
+      --accent: #3eb575;
+      --accent-dim: rgba(62, 181, 117, 0.22);
+      --warn: #ffb020;
+      --danger: #ff5c6c;
+      --ok: #4cd97a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background: #080a0c;
+      line-height: 1.45;
+    }
+
+    .app {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 8px 10px calc(12px + env(safe-area-inset-bottom));
+    }
+
+    .top-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: clamp(16px, 3.5vw, 20px);
+      font-weight: 700;
+      letter-spacing: 0.06em;
+    }
+
+    .sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .btn {
+      border: 1px solid var(--border);
+      background: var(--glass);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 7px 11px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s, border-color 0.2s;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, #45c985, var(--accent));
+      border-color: transparent;
+      color: #0a1a12;
+    }
+
+    .btn.tag-on {
+      background: linear-gradient(135deg, #ffc857, #ff9f1c);
+      border-color: transparent;
+      color: #3a2200;
+      box-shadow: 0 0 0 2px rgba(255, 176, 32, 0.35);
+    }
+
+    .file-input {
+      position: absolute;
+      width: 0;
+      height: 0;
+      opacity: 0;
+    }
+
+    /* ---- 驾驶室 ---- */
+    .cockpit {
+      border-radius: 20px 20px 28px 28px;
+      overflow: hidden;
+      background: linear-gradient(180deg, #1a1f24 0%, #12161a 55%, #0c0e11 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow:
+        0 24px 60px rgba(0, 0, 0, 0.65),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .windshield-frame {
+      display: grid;
+      grid-template-columns: 14px 1fr 14px;
+      gap: 0;
+      padding: 12px 10px 0;
+      background: linear-gradient(180deg, #2a3038, #1e2329);
+    }
+
+    .a-pillar {
+      background: linear-gradient(180deg, #3d434c, #252a30);
+      border-radius: 6px 6px 0 0;
+      box-shadow: inset -2px 0 6px rgba(0, 0, 0, 0.4);
+    }
+
+    .a-pillar.right {
+      box-shadow: inset 2px 0 6px rgba(0, 0, 0, 0.4);
+    }
+
+    .windshield {
+      position: relative;
+      aspect-ratio: 16 / 10;
+      max-height: min(48vh, 400px);
+      border-radius: 18px 18px 4px 4px;
+      overflow: hidden;
+      background: #050608;
+      border: 3px solid #3a424c;
+      box-shadow:
+        inset 0 0 40px rgba(120, 160, 200, 0.12),
+        0 4px 0 #151920;
+    }
+
+    .windshield::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+      background:
+        linear-gradient(165deg, rgba(255, 255, 255, 0.14) 0%, transparent 28%),
+        linear-gradient(200deg, transparent 60%, rgba(0, 0, 0, 0.35));
+    }
+
+    .windshield video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      background: #000;
+    }
+
+    .windshield.pause-flash {
+      animation: pauseFlash 0.55s ease;
+    }
+
+    @keyframes pauseFlash {
+      0%, 100% { box-shadow: inset 0 0 0 0 transparent; }
+      40% { box-shadow: inset 0 0 0 6px rgba(255, 92, 108, 0.85); }
+    }
+
+    .video-empty {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      text-align: center;
+      color: rgba(220, 230, 240, 0.75);
+      font-size: 14px;
+      background: linear-gradient(180deg, #1a2838, #0a1018);
+      z-index: 1;
+    }
+
+    .hud {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      pointer-events: none;
+    }
+
+    .hud .cue {
+      margin: 0 8px;
+      padding: 8px 12px;
+      border-radius: 10px 10px 0 0;
+      background: rgba(8, 14, 20, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: none;
+      backdrop-filter: blur(8px);
+    }
+
+    .status-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 12px;
+      padding: 6px 12px;
+      background: rgba(5, 8, 12, 0.88);
+      font-size: 11px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .status-bar strong {
+      color: #7ee0a8;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .cue-label {
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .cue-text {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .cue.hint-wait {
+      border-color: rgba(62, 181, 117, 0.4);
+    }
+
+    .cue.hint-error {
+      border-color: rgba(255, 92, 108, 0.55);
+      background: rgba(60, 18, 24, 0.92);
+    }
+
+    .cue.hint-ok {
+      border-color: rgba(76, 217, 122, 0.45);
+    }
+
+    .interior {
+      padding: 10px 12px 14px;
+      background:
+        radial-gradient(ellipse 70% 80% at 50% 100%, rgba(40, 48, 56, 0.9), transparent),
+        linear-gradient(180deg, #14181d, #0e1115);
+    }
+
+    .console {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .console-surface {
+      border-radius: 16px;
+      padding: 10px 12px 12px;
+      background: linear-gradient(145deg, #2a2f36, #1c2026);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      box-shadow:
+        inset 0 2px 0 rgba(255, 255, 255, 0.04),
+        inset 0 -8px 20px rgba(0, 0, 0, 0.35);
+    }
+
+    .console-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.4);
+      letter-spacing: 0.22em;
+      margin-bottom: 8px;
+    }
+
+    .control-groups {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .ctrl-group-head {
+      font-size: 10px;
+      color: rgba(255, 200, 100, 0.55);
+      letter-spacing: 0.12em;
+      margin-bottom: 6px;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+      gap: 6px;
+    }
+
+    .controls-grid-gear {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    @media (max-width: 520px) {
+      .controls-grid-gear {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    .ctrl-gear {
+      max-width: none;
+      width: 100%;
+      aspect-ratio: auto;
+      min-height: 50px;
+      border-radius: 11px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .ctrl-gear .icon {
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .ctrl {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      min-height: 58px;
+      padding: 6px 4px;
+      border-radius: 50%;
+      width: 100%;
+      max-width: 76px;
+      margin: 0 auto;
+      aspect-ratio: 1;
+      border: 2px solid #3d4550;
+      background: radial-gradient(circle at 35% 30%, #4a545f, #2a3139 65%);
+      color: #e8ecef;
+      font: inherit;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, transform 0.12s, box-shadow 0.2s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow:
+        0 3px 0 #15191e,
+        inset 0 2px 4px rgba(255, 255, 255, 0.12);
+    }
+
+    .ctrl .icon {
+      font-size: 17px;
+      line-height: 1;
+    }
+
+    .ctrl:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #15191e;
+    }
+
+    .ctrl.on {
+      border-color: #3eb575;
+      background: radial-gradient(circle at 35% 30%, #5fcf94, #2a6b48 70%);
+      color: #eafff3;
+      box-shadow:
+        0 0 12px rgba(62, 181, 117, 0.45),
+        0 3px 0 #1a3d2a,
+        inset 0 2px 4px rgba(255, 255, 255, 0.2);
+    }
+
+    .ctrl.expect {
+      animation: pulse 1s ease-in-out infinite;
+      border-color: var(--warn);
+    }
+
+    .ctrl.wrong-flash {
+      animation: shake 0.4s ease;
+      border-color: var(--danger);
+    }
+
+    .ctrl-pedal {
+      grid-column: 1 / -1;
+      max-width: none;
+      width: 100%;
+      aspect-ratio: auto;
+      min-height: 52px;
+      border-radius: 14px;
+      flex-direction: row;
+      gap: 10px;
+      background: linear-gradient(180deg, #4a535c, #2c333a);
+      touch-action: none;
+      user-select: none;
+    }
+
+    .ctrl-pedal.on {
+      background: linear-gradient(180deg, #52d68a, #2a9d58);
+      border-color: #3eb575;
+      color: #eafff3;
+      box-shadow:
+        0 0 16px rgba(62, 181, 117, 0.55),
+        0 3px 0 #1a4a2e,
+        inset 0 2px 4px rgba(255, 255, 255, 0.25);
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 2px rgba(255, 176, 32, 0.2); }
+      50% { box-shadow: 0 0 0 5px rgba(255, 176, 32, 0.4); }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
+    }
+
+    .state-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 10px;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .chip {
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .chip.on {
+      color: var(--ok);
+      border-color: rgba(76, 217, 122, 0.35);
+    }
+
+    .calibrate {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.1);
+    }
+
+    .calibrate summary {
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--warn);
+      list-style: none;
+    }
+
+    .calibrate summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .cal-body {
+      margin-top: 8px;
+      display: grid;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    select, input[type="text"] {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.35);
+      color: var(--text);
+      font: inherit;
+    }
+
+    .step-list {
+      margin: 8px 12px 12px;
+      max-height: 120px;
+      overflow: auto;
+      font-size: 11px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.25);
+    }
+
+    .step-list table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .step-list th,
+    .step-list td {
+      padding: 5px 8px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .step-list tr.done td {
+      color: var(--ok);
+    }
+
+    .step-list tr.active td {
+      background: rgba(62, 181, 117, 0.1);
+    }
+
+    footer {
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    a {
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="top-bar">
+      <div>
+        <h1>科目三 · 驾驶室模拟</h1>
+        <p class="sub">跟口令操作：轻点脚刹 / 点一下转向灯；按错则视频暂停</p>
+      </div>
+      <div class="toolbar">
+        <label class="btn">
+          换本地视频
+          <input class="file-input" id="video-file" type="file" accept="video/*" />
+        </label>
+        <button type="button" class="btn" id="load-lesson">课表 JSON</button>
+        <input class="file-input" id="lesson-file" type="file" accept="application/json,.json" />
+        <button type="button" class="btn" id="replay-video">从头播放</button>
+        <button type="button" class="btn" id="toggle-tag-mode">跟读打点</button>
+        <button type="button" class="btn" id="reset-progress">重置</button>
+      </div>
+    </header>
+
+    <main class="cockpit" aria-label="模拟驾驶室">
+      <div class="windshield-frame">
+        <div class="a-pillar" aria-hidden="true"></div>
+        <section class="windshield" id="windshield" aria-label="前挡风玻璃">
+          <video id="lesson-video" playsinline controls preload="metadata">
+            <source id="lesson-video-builtin" src="media/subject3.mp4" type="video/mp4" />
+          </video>
+          <div class="video-empty" id="video-placeholder" hidden>内置视频加载中…</div>
+          <div class="hud">
+            <div class="cue hint-wait" id="cue-panel" role="status" aria-live="polite">
+              <div class="cue-label">当前口令</div>
+              <div class="cue-text" id="cue-text">加载课表后播放，应按的开关会亮起</div>
+              <p class="sub" id="cue-hint" style="margin-top:4px;font-size:11px;"></p>
+            </div>
+            <div class="status-bar">
+              <span>时间 <strong id="time-display">00:00</strong> / <strong id="dur-display">--:--</strong></span>
+              <span>得分 <strong id="score">0</strong></span>
+              <span>失误 <strong id="mistakes">0</strong></span>
+            </div>
+          </div>
+        </section>
+        <div class="a-pillar right" aria-hidden="true"></div>
+      </div>
+
+      <div class="interior">
+        <aside class="console" aria-label="中控台开关">
+          <div class="console-surface">
+            <p class="console-title">中控台 · 灯光与操作</p>
+            <div class="control-groups" id="controls-root"></div>
+            <div class="state-row" id="state-chips" aria-live="polite"></div>
+            <details class="calibrate" id="calibrate-panel">
+              <summary>高级：手动 t0/t1 · 导出课表</summary>
+              <div class="cal-body">
+                <p class="sub">推荐先用顶部「跟读打点」：听到什么口令就点哪个开关，系统自动对齐。此处可微调时间。</p>
+                <button type="button" class="btn" id="clear-lesson">清空课表步骤</button>
+                <label>
+                  动作类型
+                  <select id="cal-action"></select>
+                </label>
+                <label>
+                  步骤说明
+                  <input type="text" id="cal-label" placeholder="例如：开启前照灯" />
+                </label>
+                <div class="toolbar">
+                  <button type="button" class="btn" id="cal-mark-start">t0</button>
+                  <button type="button" class="btn" id="cal-mark-end">t1</button>
+                  <button type="button" class="btn primary" id="cal-add-step">添加</button>
+                  <button type="button" class="btn" id="cal-export">导出</button>
+                </div>
+                <p class="sub" id="cal-draft">t0: — · t1: —</p>
+              </div>
+            </details>
+          </div>
+        </aside>
+      </div>
+
+      <div class="step-list" id="step-list-wrap" hidden>
+        <table>
+          <thead>
+            <tr><th>时段</th><th>口令/动作</th><th>映射</th><th>状态</th></tr>
+          </thead>
+          <tbody id="step-tbody"></tbody>
+        </table>
+      </div>
+    </main>
+
+    <footer>
+      网页版 · 内置教学视频 · 课表 <a href="ke3-lesson.json">ke3-lesson.json</a>
+    </footer>
+  </div>
+
+  <script>
+    const ACTIONS = [
+      { id: "low-beam", label: "近光灯", icon: "💡", type: "toggle", group: "beam", value: "low" },
+      { id: "high-beam", label: "远光灯", icon: "🔦", type: "toggle", group: "beam", value: "high" },
+      { id: "beam-flash", label: "闪灯×2", icon: "✨", type: "flash" },
+      { id: "position-light", label: "示廓灯", icon: "◌", type: "toggle", key: "position" },
+      { id: "fog-lights", label: "雾灯", icon: "🌫", type: "toggle", key: "fog" },
+      { id: "turn-left", label: "左转向", icon: "⬅", type: "toggle", group: "turn", value: "left" },
+      { id: "turn-right", label: "右转向", icon: "➡", type: "toggle", group: "turn", value: "right" },
+      { id: "hazard", label: "双闪", icon: "⚠", type: "toggle", key: "hazard" },
+      { id: "wiper", label: "雨刮", icon: "🌧", type: "toggle", key: "wiper" },
+      { id: "horn", label: "喇叭", icon: "📢", type: "momentary" },
+      { id: "handbrake-off", label: "松手刹", icon: "🅿", type: "handbrake", target: false },
+      { id: "handbrake-on", label: "拉手刹", icon: "🛑", type: "handbrake", target: true },
+      { id: "foot-brake", label: "脚刹", icon: "🦶", type: "footbrake-pedal", pedal: true },
+      { id: "lights-off", label: "灯光关", icon: "⭕", type: "lights-off" },
+      { id: "gear-n", label: "空挡", icon: "N", type: "gear", value: "N", gearBtn: true },
+      { id: "gear-1", label: "1挡", icon: "1", type: "gear", value: "1", gearBtn: true },
+      { id: "gear-2", label: "2挡", icon: "2", type: "gear", value: "2", gearBtn: true },
+      { id: "gear-3", label: "3挡", icon: "3", type: "gear", value: "3", gearBtn: true },
+      { id: "gear-4", label: "4挡", icon: "4", type: "gear", value: "4", gearBtn: true },
+      { id: "gear-5", label: "5挡", icon: "5", type: "gear", value: "5", gearBtn: true },
+    ];
+
+    const ACTION_MAP = Object.fromEntries(ACTIONS.map((a) => [a.id, a]));
+
+    const CONTROL_GROUPS = [
+      { title: "灯光组合", ids: ["low-beam", "high-beam", "beam-flash", "position-light", "fog-lights", "lights-off"] },
+      { title: "转向灯 / 双闪", ids: ["turn-left", "turn-right", "hazard"] },
+      { title: "挂挡（空挡 + 1～5挡）", ids: ["gear-n", "gear-1", "gear-2", "gear-3", "gear-4", "gear-5"], gearGrid: true },
+      { title: "脚刹 · 雨刮 · 喇叭 · 手刹", ids: ["foot-brake", "wiper", "horn", "handbrake-on", "handbrake-off"] },
+    ];
+
+    const BUILTIN_VIDEO_SRC = "media/subject3.mp4";
+
+    const video = document.getElementById("lesson-video");
+    const videoFile = document.getElementById("video-file");
+    const placeholder = document.getElementById("video-placeholder");
+    const cuePanel = document.getElementById("cue-panel");
+    const cueText = document.getElementById("cue-text");
+    const cueHint = document.getElementById("cue-hint");
+    const controlsRoot = document.getElementById("controls-root");
+    const stateChips = document.getElementById("state-chips");
+    const timeDisplay = document.getElementById("time-display");
+    const durDisplay = document.getElementById("dur-display");
+    const scoreEl = document.getElementById("score");
+    const mistakesEl = document.getElementById("mistakes");
+    const stepTbody = document.getElementById("step-tbody");
+    const stepListWrap = document.getElementById("step-list-wrap");
+    const windshieldEl = document.getElementById("windshield");
+
+    let lesson = { title: "", steps: [] };
+    let completed = new Set();
+    let score = 0;
+    let mistakes = 0;
+    let flashCount = 0;
+    let flashTimer = null;
+    let calT0 = null;
+    let calT1 = null;
+    const timedOut = new Set();
+    let tagMode = false;
+    const TAG_STEP_PADDING = 14;
+    const STEP_PREROLL_SEC = 2;
+    let lessonRestartLock = false;
+
+    const state = {
+      beam: "off",
+      position: false,
+      fog: false,
+      turn: "off",
+      hazard: false,
+      wiper: false,
+      handbrake: true,
+      footBrake: false,
+      footBrakePulse: 0,
+      hornPulse: 0,
+      gear: "N",
+    };
+
+    function formatTime(sec) {
+      if (!Number.isFinite(sec)) return "--:--";
+      const s = Math.max(0, Math.floor(sec));
+      const m = Math.floor(s / 60);
+      const r = s % 60;
+      return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
+    }
+
+    function loadProgress() {
+      try {
+        const raw = localStorage.getItem("ke3-trainer-progress");
+        if (raw) {
+          const data = JSON.parse(raw);
+          completed = new Set(data.completed || []);
+          score = data.score || 0;
+          mistakes = data.mistakes || 0;
+        }
+      } catch (_) {}
+      scoreEl.textContent = String(score);
+      mistakesEl.textContent = String(mistakes);
+    }
+
+    function saveProgress() {
+      localStorage.setItem(
+        "ke3-trainer-progress",
+        JSON.stringify({ completed: [...completed], score, mistakes }),
+      );
+    }
+
+    function saveLessonDraft() {
+      localStorage.setItem("ke3-trainer-lesson-v2", JSON.stringify(lesson));
+    }
+
+    function loadLessonDraft() {
+      try {
+        const raw = localStorage.getItem("ke3-trainer-lesson-v2");
+        if (!raw) return false;
+        const data = JSON.parse(raw);
+        if (data && Array.isArray(data.steps)) {
+          lesson = data;
+          return true;
+        }
+      } catch (_) {}
+      return false;
+    }
+
+    function setTagMode(on) {
+      tagMode = on;
+      const btn = document.getElementById("toggle-tag-mode");
+      btn.textContent = on ? "完成打点 · 练" : "跟读打点";
+      btn.classList.toggle("tag-on", on);
+      if (on) {
+        cuePanel.className = "cue hint-wait";
+        cueText.textContent = "打点模式：听到口令就点对应开关";
+        cueHint.textContent = "每点一次记录一条；下一条口令会自动结束上一条时段";
+        completed.clear();
+        timedOut.clear();
+      } else {
+        saveLessonDraft();
+        cueHint.textContent = lesson.steps.length
+          ? `已保存 ${lesson.steps.length} 条课表，可开始练习`
+          : "课表为空，请先跟读打点";
+      }
+      renderStepTable(video.currentTime || 0);
+    }
+
+    function renderControls() {
+      controlsRoot.replaceChildren();
+      CONTROL_GROUPS.forEach((group) => {
+        const section = document.createElement("div");
+        section.innerHTML = `<p class="ctrl-group-head">${group.title}</p>`;
+        const grid = document.createElement("div");
+        grid.className = "controls-grid" + (group.gearGrid ? " controls-grid-gear" : "");
+        group.ids.forEach((id) => {
+          const action = ACTION_MAP[id];
+          if (!action) return;
+          const btn = document.createElement("button");
+          btn.type = "button";
+          let cls = "ctrl";
+          if (action.pedal) cls += " ctrl-pedal";
+          if (action.gearBtn) cls += " ctrl-gear";
+          btn.className = cls;
+          btn.dataset.action = action.id;
+          btn.title = action.label;
+          btn.innerHTML = `<span class="icon">${action.icon}</span><span>${action.pedal ? action.label + "（按住）" : action.label}</span>`;
+          if (action.type === "footbrake-pedal") {
+            bindFootBrakePedal(btn);
+          } else {
+            btn.addEventListener("click", () => onControlPress(action.id, btn));
+          }
+          grid.appendChild(btn);
+        });
+        section.appendChild(grid);
+        controlsRoot.appendChild(section);
+      });
+    }
+
+    function syncControlVisuals() {
+      document.querySelectorAll(".ctrl").forEach((btn) => {
+        const id = btn.dataset.action;
+        const def = ACTION_MAP[id];
+        btn.classList.remove("on");
+        if (!def) return;
+        if (def.type === "toggle") {
+          if (def.group === "beam" && state.beam === def.value) btn.classList.add("on");
+          if (def.group === "turn" && state.turn === def.value) btn.classList.add("on");
+          if (def.key === "position" && state.position) btn.classList.add("on");
+          if (def.key === "fog" && state.fog) btn.classList.add("on");
+          if (def.key === "hazard" && state.hazard) btn.classList.add("on");
+          if (def.key === "wiper" && state.wiper) btn.classList.add("on");
+        }
+        if (def.type === "handbrake") {
+          if (state.handbrake === def.target) btn.classList.add("on");
+        }
+        if (def.type === "gear" && state.gear === def.value) {
+          btn.classList.add("on");
+        }
+        if (def.type === "footbrake-pedal" && state.footBrake) {
+          btn.classList.add("on");
+        }
+        if (def.type === "lights-off" && state.beam === "off" && !state.position && !state.fog) {
+          btn.classList.add("on");
+        }
+      });
+
+      const chips = [
+        ["近/远光", state.beam === "off" ? "关" : state.beam === "low" ? "近光" : "远光"],
+        ["转向", state.turn === "off" ? "关" : state.turn === "left" ? "左" : "右"],
+        ["示廓", state.position ? "开" : "关"],
+        ["雾灯", state.fog ? "开" : "关"],
+        ["双闪", state.hazard ? "开" : "关"],
+        ["手刹", state.handbrake ? "拉" : "松"],
+        ["脚刹", state.footBrake ? "踩" : "松"],
+        ["挡位", state.gear === "N" ? "空挡" : `${state.gear}挡`],
+      ];
+      stateChips.replaceChildren();
+      chips.forEach(([name, val]) => {
+        const el = document.createElement("span");
+        el.className = "chip" + (val !== "关" && val !== "拉" ? " on" : "");
+        el.textContent = `${name} ${val}`;
+        stateChips.appendChild(el);
+      });
+    }
+
+    function applyAction(def) {
+      if (def.type === "toggle") {
+        if (def.group === "beam") {
+          state.beam = state.beam === def.value ? "off" : def.value;
+          if (state.beam !== "off") {
+            state.position = true;
+          }
+        } else if (def.group === "turn") {
+          state.turn = state.turn === def.value ? "off" : def.value;
+          state.hazard = false;
+        } else if (def.key === "position") {
+          state.position = !state.position;
+        } else if (def.key === "fog") {
+          state.fog = !state.fog;
+        } else if (def.key === "hazard") {
+          state.hazard = !state.hazard;
+          if (state.hazard) state.turn = "off";
+        } else if (def.key === "wiper") {
+          state.wiper = !state.wiper;
+        }
+      } else if (def.type === "momentary") {
+        state.hornPulse += 1;
+      } else if (def.type === "handbrake") {
+        state.handbrake = def.target;
+      } else if (def.type === "footbrake-pedal") {
+        state.footBrakePulse += 1;
+      } else if (def.type === "gear") {
+        state.gear = def.value;
+      } else if (def.type === "lights-off") {
+        state.beam = "off";
+        state.position = false;
+        state.fog = false;
+        state.hazard = false;
+      } else if (def.type === "flash") {
+        flashCount += 1;
+        clearTimeout(flashTimer);
+        flashTimer = setTimeout(() => {
+          flashCount = 0;
+        }, 2500);
+      }
+      syncControlVisuals();
+    }
+
+    function actionSatisfies(stepAction, pressedId) {
+      if (stepAction === pressedId) return true;
+      if (
+        (stepAction === "foot-brake" || stepAction === "foot-brake-on") &&
+        pressedId === "foot-brake"
+      ) {
+        return true;
+      }
+      if (stepAction.startsWith("gear-") && pressedId === stepAction) {
+        return true;
+      }
+      if (stepAction === "fog-lights" && (pressedId === "fog-lights" || pressedId === "position-light")) {
+        return state.fog && state.position;
+      }
+      if (stepAction === "beam-flash" && pressedId === "beam-flash") {
+        return flashCount >= 2;
+      }
+      return false;
+    }
+
+    function stepIsSatisfied(step) {
+      if (step.action === "fog-lights") return state.fog && state.position;
+      if (step.action === "beam-flash") return flashCount >= 2;
+      if (step.action === "lights-off") return state.beam === "off" && !state.fog && !state.hazard;
+      if (step.action === "horn") return state.hornPulse > 0;
+      if (step.action === "handbrake-off") return !state.handbrake;
+      if (step.action === "handbrake-on") return state.handbrake;
+      if (step.action === "foot-brake" || step.action === "foot-brake-on") {
+        return state.footBrake || state.footBrakePulse > 0;
+      }
+      if (step.action === "foot-brake-off") return !state.footBrake;
+      if (step.action?.startsWith("gear-")) {
+        const g = step.action.replace("gear-", "");
+        return state.gear === g;
+      }
+      if (step.action === "turn-left") return state.turn === "left";
+      if (step.action === "turn-right") return state.turn === "right";
+      if (step.action === "high-beam") return state.beam === "high";
+      if (step.action === "low-beam") return state.beam === "low";
+      if (step.action === "hazard") return state.hazard;
+      return completed.has(step.id);
+    }
+
+    function getActiveSteps(t) {
+      return lesson.steps.filter(
+        (s) => t >= s.t0 - STEP_PREROLL_SEC && t < s.t1 && !completed.has(s.id),
+      );
+    }
+
+    function isPracticeEnforced() {
+      return !tagMode && lesson.steps.length > 0 && Boolean(video.src || video.currentSrc);
+    }
+
+    function getExpectedActions(t) {
+      return getActiveSteps(t).filter((s) => s.strict !== false);
+    }
+
+    function resetVehicleState() {
+      state.beam = "off";
+      state.position = false;
+      state.fog = false;
+      state.turn = "off";
+      state.hazard = false;
+      state.wiper = false;
+      state.handbrake = true;
+      state.footBrake = false;
+      state.footBrakePulse = 0;
+      state.hornPulse = 0;
+      state.gear = "N";
+      flashCount = 0;
+      syncControlVisuals();
+    }
+
+    function flashWindshieldPause() {
+      windshieldEl?.classList.remove("pause-flash");
+      void windshieldEl?.offsetWidth;
+      windshieldEl?.classList.add("pause-flash");
+    }
+
+    function replayVideoFromStart() {
+      if (!video.src && !video.currentSrc) {
+        alert("请先选择教学视频");
+        return;
+      }
+      lessonRestartLock = true;
+      const seekStart = () => {
+        try {
+          if (typeof video.fastSeek === "function") video.fastSeek(0);
+          else video.currentTime = 0;
+        } catch (_) {
+          video.currentTime = 0;
+        }
+      };
+      seekStart();
+      requestAnimationFrame(seekStart);
+      timeDisplay.textContent = formatTime(0);
+      completed.clear();
+      timedOut.clear();
+      video.play().catch(() => video.pause());
+      renderStepTable(0);
+      highlightExpected(0);
+      if (tagMode) {
+        cueHint.textContent = "已从开头播放，听到口令点对应开关";
+      } else {
+        cueHint.textContent = "已从开头播放";
+      }
+      window.setTimeout(() => {
+        lessonRestartLock = false;
+      }, 400);
+    }
+
+    function pauseOnMistake(message) {
+      lessonRestartLock = true;
+      cuePanel.className = "cue hint-error";
+      cueText.textContent = message;
+      cueHint.textContent = "视频已暂停 — 按正确开关后点播放继续";
+      video.pause();
+      flashWindshieldPause();
+      highlightExpected(video.currentTime || 0);
+      renderStepTable(video.currentTime || 0);
+      window.setTimeout(() => {
+        lessonRestartLock = false;
+      }, 400);
+    }
+
+    function setFootBrakePressed(pressed) {
+      state.footBrake = pressed;
+      syncControlVisuals();
+    }
+
+    function bindFootBrakePedal(btn) {
+      const release = () => setFootBrakePressed(false);
+
+      btn.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        btn.setPointerCapture(e.pointerId);
+        setFootBrakePressed(true);
+      });
+
+      btn.addEventListener("pointerup", (e) => {
+        release();
+        try {
+          btn.releasePointerCapture(e.pointerId);
+        } catch (_) {}
+        onControlPress("foot-brake", btn);
+      });
+
+      btn.addEventListener("pointercancel", () => {
+        release();
+      });
+      btn.addEventListener("lostpointercapture", () => {
+        release();
+      });
+    }
+
+    function tagStepFromPress(actionId, t) {
+      const def = ACTION_MAP[actionId];
+      if (!def) return;
+      const tRound = Math.round(t * 10) / 10;
+      if (lesson.steps.length > 0) {
+        const prev = lesson.steps[lesson.steps.length - 1];
+        prev.t1 = Math.max(prev.t0 + 0.5, tRound);
+      }
+      lesson.steps.push({
+        id: `step-${lesson.steps.length + 1}-${actionId}-${Date.now()}`,
+        t0: tRound,
+        t1: Math.round((tRound + TAG_STEP_PADDING) * 10) / 10,
+        action: actionId,
+        label: def.label,
+        hint: `听到「${def.label}」`,
+        strict: true,
+      });
+      saveLessonDraft();
+      cuePanel.className = "cue hint-ok";
+      cueText.textContent = `已记录 ${lesson.steps.length}：${def.label}`;
+      cueHint.textContent = `${formatTime(tRound)} 起，约 ${TAG_STEP_PADDING}s 内完成`;
+      renderStepTable(t);
+    }
+
+    function onControlPress(actionId, btnEl) {
+      const def = ACTION_MAP[actionId];
+      if (!def) return;
+
+      const t = video.currentTime || 0;
+
+      if (tagMode) {
+        tagStepFromPress(actionId, t);
+        applyAction(def);
+        return;
+      }
+
+      const activeSteps = isPracticeEnforced() ? getActiveSteps(t) : [];
+      const expected = activeSteps.filter((s) => s.strict !== false);
+      const mustRespond = isPracticeEnforced() && expected.length > 0;
+
+      if (mustRespond) {
+        const primary = expected[0];
+        const ok = actionSatisfies(primary.action, actionId);
+        if (!ok) {
+          mistakes += 1;
+          mistakesEl.textContent = String(mistakes);
+          btnEl.classList.add("wrong-flash");
+          setTimeout(() => btnEl.classList.remove("wrong-flash"), 450);
+          pauseOnMistake(`操作错误：应「${primary.label}」，不是当前按钮`);
+          saveProgress();
+          return;
+        }
+      }
+
+      applyAction(def);
+
+      expected.forEach((step) => {
+        if (stepIsSatisfied(step)) {
+          completed.add(step.id);
+          if (step.action === "horn") state.hornPulse = 0;
+          if (step.action === "foot-brake" || step.action === "foot-brake-on") state.footBrakePulse = 0;
+          score += 10;
+          scoreEl.textContent = String(score);
+          cuePanel.className = "cue hint-ok";
+          cueText.textContent = `完成：${step.label}`;
+          cueHint.textContent = "可继续播放视频";
+          saveProgress();
+        }
+      });
+
+      renderStepTable(t);
+    }
+
+    function highlightExpected(t) {
+      document.querySelectorAll(".ctrl").forEach((b) => b.classList.remove("expect"));
+      const active = getActiveSteps(t);
+      if (!active.length) {
+        cuePanel.className = "cue hint-wait";
+        cueText.textContent = "跟车练习中…（无待完成口令）";
+        cueHint.textContent = "";
+        return;
+      }
+      const step = active[0];
+      cuePanel.className = "cue hint-wait";
+      cueText.textContent = step.label;
+      cueHint.textContent = step.hint || "";
+      const target = ACTION_MAP[step.action];
+      if (target) {
+        const btn = document.querySelector(`.ctrl[data-action="${step.action}"]`);
+        if (btn) btn.classList.add("expect");
+      }
+      if (step.action === "fog-lights") {
+        document.querySelector('.ctrl[data-action="fog-lights"]')?.classList.add("expect");
+        document.querySelector('.ctrl[data-action="position-light"]')?.classList.add("expect");
+      }
+      if (step.action === "foot-brake-on" || step.action === "foot-brake") {
+        document.querySelector('.ctrl[data-action="foot-brake"]')?.classList.add("expect");
+      }
+      if (step.action === "turn-right") {
+        document.querySelector('.ctrl[data-action="turn-right"]')?.classList.add("expect");
+      }
+      if (step.action === "turn-left") {
+        document.querySelector('.ctrl[data-action="turn-left"]')?.classList.add("expect");
+      }
+      if (step.action?.startsWith("gear-")) {
+        document.querySelector(`.ctrl[data-action="${step.action}"]`)?.classList.add("expect");
+      }
+    }
+
+    function renderStepTable(t) {
+      if (!lesson.steps.length) {
+        stepListWrap.hidden = true;
+        return;
+      }
+      stepListWrap.hidden = false;
+      stepTbody.replaceChildren();
+      lesson.steps.forEach((step, index) => {
+        const tr = document.createElement("tr");
+        if (completed.has(step.id)) tr.classList.add("done");
+        else if (t >= step.t0 && t < step.t1) tr.classList.add("active");
+
+        const tdTime = document.createElement("td");
+        tdTime.textContent = `${formatTime(step.t0)}–${formatTime(step.t1)}`;
+
+        const tdLabel = document.createElement("td");
+        const labelInput = document.createElement("input");
+        labelInput.type = "text";
+        labelInput.value = step.label || "";
+        labelInput.style.cssText = "width:100%;min-width:72px;font-size:11px;padding:4px 6px;border-radius:6px;border:1px solid rgba(255,255,255,0.12);background:rgba(0,0,0,0.35);color:inherit;";
+        labelInput.addEventListener("change", () => {
+          step.label = labelInput.value.trim() || ACTION_MAP[step.action]?.label || step.action;
+          saveLessonDraft();
+        });
+        tdLabel.appendChild(labelInput);
+
+        const tdAction = document.createElement("td");
+        const sel = document.createElement("select");
+        sel.style.cssText = "font-size:11px;padding:4px;max-width:96px;border-radius:6px;border:1px solid rgba(255,255,255,0.12);background:#1a2026;color:inherit;";
+        ACTIONS.forEach((a) => {
+          const opt = document.createElement("option");
+          opt.value = a.id;
+          opt.textContent = a.label;
+          if (a.id === step.action) opt.selected = true;
+          sel.appendChild(opt);
+        });
+        sel.addEventListener("change", () => {
+          step.action = sel.value;
+          if (!step.label || ACTIONS.some((a) => a.label === step.label)) {
+            step.label = ACTION_MAP[step.action]?.label || step.action;
+            labelInput.value = step.label;
+          }
+          saveLessonDraft();
+          highlightExpected(video.currentTime || 0);
+        });
+        tdAction.appendChild(sel);
+
+        const tdStatus = document.createElement("td");
+        tdStatus.textContent = completed.has(step.id) ? "✓" : t >= step.t1 ? "超时" : "待做";
+
+        tr.append(tdTime, tdLabel, tdAction, tdStatus);
+        stepTbody.appendChild(tr);
+      });
+    }
+
+    function onTimeUpdate() {
+      if (lessonRestartLock) return;
+      const t = video.currentTime;
+      timeDisplay.textContent = formatTime(t);
+      highlightExpected(t);
+      renderStepTable(t);
+
+      if (!isPracticeEnforced()) return;
+
+      lesson.steps.forEach((step) => {
+        if (t >= step.t1 && !completed.has(step.id) && !timedOut.has(step.id) && step.strict !== false) {
+          if (!stepIsSatisfied(step)) {
+            timedOut.add(step.id);
+            mistakes += 1;
+            mistakesEl.textContent = String(mistakes);
+            pauseOnMistake(`超时未完成：${step.label}`);
+            saveProgress();
+          }
+        }
+      });
+    }
+
+    const DEFAULT_LESSON = {
+      title: "驾考科目三 · 请跟读打点",
+      description: "课表为空，避免与您的 MP4 口令不一致",
+      steps: [],
+    };
+
+    async function loadDefaultLesson() {
+      if (loadLessonDraft()) {
+        cueHint.textContent = `已恢复本地课表（${lesson.steps.length} 条）`;
+        renderStepTable(0);
+        return;
+      }
+      try {
+        const res = await fetch("ke3-lesson.json", { cache: "no-store" });
+        if (!res.ok) throw new Error("fetch failed");
+        lesson = await res.json();
+      } catch (_) {
+        lesson = DEFAULT_LESSON;
+      }
+      if (!lesson.steps?.length) {
+        cueText.textContent = "暂无课表";
+        cueHint.textContent = "点「跟读打点」→ 播放视频 → 听到口令就点对应开关";
+      }
+      renderStepTable(0);
+    }
+
+    function hideVideoPlaceholder() {
+      placeholder.style.display = "none";
+      placeholder.hidden = true;
+    }
+
+    function showVideoPlaceholder(message) {
+      placeholder.textContent = message;
+      placeholder.hidden = false;
+      placeholder.style.display = "grid";
+    }
+
+    function initBuiltinVideo() {
+      video.src = BUILTIN_VIDEO_SRC;
+      hideVideoPlaceholder();
+      video.load();
+    }
+
+    video.addEventListener("error", () => {
+      if (videoFile.files?.length) return;
+      showVideoPlaceholder("内置视频未找到，请点「换本地视频」或确认 media/subject3.mp4 存在");
+    });
+
+    videoFile.addEventListener("change", () => {
+      const file = videoFile.files?.[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      video.src = url;
+      hideVideoPlaceholder();
+      video.load();
+    });
+
+    video.addEventListener("loadeddata", () => {
+      if (video.src) hideVideoPlaceholder();
+    });
+
+    video.addEventListener("loadedmetadata", () => {
+      durDisplay.textContent = formatTime(video.duration);
+      if (lesson.steps.length > 0) {
+        const last = lesson.steps[lesson.steps.length - 1];
+        if (Number.isFinite(video.duration) && last.t1 > video.duration) {
+          last.t1 = Math.round(video.duration * 10) / 10;
+        }
+      }
+    });
+
+    video.addEventListener("timeupdate", onTimeUpdate);
+    video.addEventListener("play", onTimeUpdate);
+
+    document.getElementById("load-lesson").addEventListener("click", () => {
+      document.getElementById("lesson-file").click();
+    });
+
+    document.getElementById("lesson-file").addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        lesson = JSON.parse(await file.text());
+        completed.clear();
+        score = 0;
+        mistakes = 0;
+        scoreEl.textContent = "0";
+        mistakesEl.textContent = "0";
+        saveProgress();
+        saveLessonDraft();
+        renderStepTable(video.currentTime || 0);
+        cueText.textContent = lesson.title || "课表已加载";
+      } catch {
+        cuePanel.className = "cue hint-error";
+        cueText.textContent = "课表 JSON 格式无效";
+        cueHint.textContent = "";
+      }
+    });
+
+    document.getElementById("replay-video").addEventListener("click", replayVideoFromStart);
+
+    document.getElementById("reset-progress").addEventListener("click", () => {
+      completed.clear();
+      timedOut.clear();
+      score = 0;
+      mistakes = 0;
+      flashCount = 0;
+      scoreEl.textContent = "0";
+      mistakesEl.textContent = "0";
+      saveProgress();
+      renderStepTable(video.currentTime || 0);
+    });
+
+    const calAction = document.getElementById("cal-action");
+    ACTIONS.forEach((a) => {
+      const opt = document.createElement("option");
+      opt.value = a.id;
+      opt.textContent = a.label;
+      calAction.appendChild(opt);
+    });
+
+    document.getElementById("cal-mark-start").addEventListener("click", () => {
+      calT0 = video.currentTime || 0;
+      document.getElementById("cal-draft").textContent = `t0: ${calT0.toFixed(2)} · t1: ${calT1 != null ? calT1.toFixed(2) : "—"}`;
+    });
+
+    document.getElementById("cal-mark-end").addEventListener("click", () => {
+      calT1 = video.currentTime || 0;
+      document.getElementById("cal-draft").textContent = `t0: ${calT0 != null ? calT0.toFixed(2) : "—"} · t1: ${calT1.toFixed(2)}`;
+    });
+
+    document.getElementById("cal-add-step").addEventListener("click", () => {
+      if (calT0 == null || calT1 == null || calT1 <= calT0) {
+        alert("请先标记有效的 t0、t1（结束应大于开始）");
+        return;
+      }
+      const action = calAction.value;
+      const label = document.getElementById("cal-label").value.trim() || ACTION_MAP[action].label;
+      const id = `step-${lesson.steps.length + 1}-${action}`;
+      lesson.steps.push({
+        id,
+        t0: Math.round(calT0 * 10) / 10,
+        t1: Math.round(calT1 * 10) / 10,
+        action,
+        label,
+        hint: "",
+        strict: true,
+      });
+      lesson.steps.sort((a, b) => a.t0 - b.t0);
+      calT0 = null;
+      calT1 = null;
+      document.getElementById("cal-draft").textContent = "t0: — · t1: —";
+      document.getElementById("cal-label").value = "";
+      renderStepTable(video.currentTime || 0);
+    });
+
+    document.getElementById("cal-export").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(lesson, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "ke3-lesson.json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      saveLessonDraft();
+    });
+
+    document.getElementById("toggle-tag-mode").addEventListener("click", () => {
+      if (!tagMode && lesson.steps.length > 0) {
+        const ok = confirm("进入跟读打点将保留现有步骤并继续追加。若要重做请先「清空课表步骤」。继续？");
+        if (!ok) return;
+      }
+      if (!tagMode && lesson.steps.length === 0 && !video.src && !video.currentSrc) {
+        alert("请先加载教学视频");
+        return;
+      }
+      setTagMode(!tagMode);
+    });
+
+    document.getElementById("clear-lesson").addEventListener("click", () => {
+      if (!confirm("确定清空所有课表步骤？")) return;
+      lesson.steps = [];
+      completed.clear();
+      timedOut.clear();
+      saveLessonDraft();
+      renderStepTable(0);
+      cueText.textContent = "课表已清空";
+      cueHint.textContent = "请使用「跟读打点」按视频口令重新匹配";
+    });
+
+    renderControls();
+    syncControlVisuals();
+    loadProgress();
+    initBuiltinVideo();
+    loadDefaultLesson();
+  </script>
+</body>
+</html>
