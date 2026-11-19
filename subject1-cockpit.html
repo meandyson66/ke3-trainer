@@ -272,64 +272,6 @@
       justify-content: center;
       align-items: center;
     }
-    .turn-stalk-mount {
-      position: absolute;
-      left: calc(50% - 172px);
-      top: 16%;
-      width: 48px;
-      height: 148px;
-      z-index: 3;
-      touch-action: none;
-    }
-    .turn-stalk-shaft {
-      position: absolute;
-      left: 50%;
-      top: 6px;
-      bottom: 6px;
-      width: 8px;
-      margin-left: -4px;
-      border-radius: 4px;
-      background: linear-gradient(90deg, #2a3444, #3d4a5c 50%, #2a3444);
-      border: 1px solid #475569;
-      pointer-events: none;
-    }
-    .turn-stalk-handle {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: 56px;
-      height: 22px;
-      margin-left: -28px;
-      margin-top: -11px;
-      border-radius: 8px;
-      background: linear-gradient(180deg, #6b7a8c, #475569);
-      border: 1px solid #94a3b8;
-      cursor: grab;
-      transition: transform 0.14s ease, background 0.14s, border-color 0.14s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 8px;
-      color: #e2e8f0;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
-    }
-    .turn-stalk-handle:active {
-      cursor: grabbing;
-    }
-    .turn-stalk-handle.latched {
-      background: linear-gradient(180deg, #22c55e, #15803d);
-      border-color: #86efac;
-    }
-    .turn-stalk-hint {
-      position: absolute;
-      left: -4px;
-      right: -4px;
-      bottom: -2px;
-      text-align: center;
-      font-size: 8px;
-      color: var(--text-muted);
-      pointer-events: none;
-    }
     .stalk {
       position: absolute;
       top: 52%;
@@ -345,7 +287,10 @@
       font-size: 10px;
       color: #e2e8f0;
     }
+    .stalk.left { left: calc(50% - 155px); }
     .stalk.right { right: calc(50% - 155px); }
+    .stalk.left.up { transform: rotate(-18deg); background: #16a34a; }
+    .stalk.left.down { transform: rotate(18deg); background: #16a34a; }
     .stalk.right.active { background: #2563eb; }
     .steering-wheel {
       position: relative;
@@ -551,11 +496,7 @@
         </div>
       </div>
       <div class="wheel-stage">
-        <div class="turn-stalk-mount" id="turnStalkMount" title="下滑左转 · 上滑右转">
-          <div class="turn-stalk-shaft" aria-hidden="true"></div>
-          <div id="leftStalk" class="turn-stalk-handle">转向</div>
-          <span class="turn-stalk-hint">↓左 ↑右</span>
-        </div>
+        <div id="leftStalk" class="stalk left" title="点击切换左转向拨杆">转向拨杆</div>
         <div id="steeringWheel" class="steering-wheel">
           <div class="wheel-spoke-h"></div>
           <div class="wheel-spoke-v"></div>
@@ -606,9 +547,6 @@
       speed: 0,
       blinkPhase: false
     };
-    const STALK_TRAVEL = 28;
-    const STALK_THRESH = 14;
-  let stalkDrag = { active: false, startY: 0, baseY: 0, offsetY: 0 };
     let audioCtx = null;
     function playTick() {
       try {
@@ -677,7 +615,9 @@
       if (state.turn === "left") wheelDeg = -28;
       if (state.turn === "right") wheelDeg = 28;
       els.steeringWheel.style.transform = `rotate(${wheelDeg}deg)`;
-      applyTurnStalkVisual();
+      els.leftStalk.classList.remove("up", "down");
+      if (state.turn === "left") els.leftStalk.classList.add("down");
+      if (state.turn === "right") els.leftStalk.classList.add("up");
       const wiperLabels = ["OFF", "LOW", "HIGH"];
       const wiperCn = ["关闭", "低速刮刷", "高速刮刷"];
       els.wiperStateVal.textContent = wiperLabels[state.wiperMode];
@@ -719,53 +659,6 @@
         转向：${state.hazard ? "双闪开启" : (state.turn === "left" ? "左转向" : state.turn === "right" ? "右转向" : "关闭")} · 雨刷：${wiperCn[state.wiperMode]} · 远光：${state.highBeam ? "开启" : "关闭"}
       `;
     }
-    function stalkOffsetForState() {
-      if (state.turn === "left") return STALK_TRAVEL;
-      if (state.turn === "right") return -STALK_TRAVEL;
-      return 0;
-    }
-    function applyTurnStalkVisual() {
-      const y = stalkDrag.active ? stalkDrag.offsetY : stalkOffsetForState();
-      els.leftStalk.style.transform = `translateY(${y}px)`;
-      const latched = !stalkDrag.active && state.turn !== "none";
-      els.leftStalk.classList.toggle("latched", latched);
-    }
-    function commitTurnStalkPosition() {
-      const y = stalkDrag.offsetY;
-      if (y > STALK_THRESH) {
-        state.turn = state.turn === "left" ? "none" : "left";
-      } else if (y < -STALK_THRESH) {
-        state.turn = state.turn === "right" ? "none" : "right";
-      } else if (Math.abs(y) <= 6) {
-        state.turn = "none";
-      }
-    }
-    function bindTurnStalkSlide() {
-      const handle = els.leftStalk;
-      const endDrag = () => {
-        if (!stalkDrag.active) return;
-        stalkDrag.active = false;
-        commitTurnStalkPosition();
-        stalkDrag.offsetY = stalkOffsetForState();
-        renderUI();
-      };
-      handle.addEventListener("pointerdown", (e) => {
-        handle.setPointerCapture(e.pointerId);
-        stalkDrag.active = true;
-        stalkDrag.startY = e.clientY;
-        stalkDrag.baseY = stalkOffsetForState();
-        stalkDrag.offsetY = stalkDrag.baseY;
-        applyTurnStalkVisual();
-      });
-      handle.addEventListener("pointermove", (e) => {
-        if (!stalkDrag.active) return;
-        const dy = e.clientY - stalkDrag.startY;
-        stalkDrag.offsetY = Math.max(-STALK_TRAVEL - 6, Math.min(STALK_TRAVEL + 6, stalkDrag.baseY + dy));
-        applyTurnStalkVisual();
-      });
-      handle.addEventListener("pointerup", endDrag);
-      handle.addEventListener("pointercancel", endDrag);
-    }
     function toggleTurn(dir) {
       state.turn = state.turn === dir ? "none" : dir;
       renderUI();
@@ -776,7 +669,11 @@
     }
     els.btnLeftTurn.addEventListener("click", () => toggleTurn("left"));
     els.btnRightTurn.addEventListener("click", () => toggleTurn("right"));
-    bindTurnStalkSlide();
+    els.leftStalk.addEventListener("click", () => {
+      const order = ["none", "left", "right"];
+      state.turn = order[(order.indexOf(state.turn) + 1) % order.length];
+      renderUI();
+    });
     els.rightStalk.addEventListener("click", cycleWiper);
     els.btnWiper.addEventListener("click", cycleWiper);
     els.btnHazard.addEventListener("click", () => {
