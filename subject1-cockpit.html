@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>科目一驾驶舱交互模拟器</title>
+  <style>
+    :root {
+      --bg-dark: #0e1117;
+      --panel-bg: rgba(24, 29, 39, 0.85);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --accent-green: #22c55e;
+      --accent-red: #ef4444;
+      --accent-amber: #f59e0b;
+      --accent-blue: #3b82f6;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+    }
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 50% 15%, #1e293b 0%, var(--bg-dark) 75%);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+      gap: 16px;
+    }
+    .top-bar {
+      width: 100%;
+      max-width: 1080px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      padding: 12px 18px;
+    }
+    .top-bar h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .top-link {
+      font-size: 13px;
+      color: var(--accent-green);
+      text-decoration: none;
+    }
+    .top-link:hover {
+      text-decoration: underline;
+    }
+    .shortcuts {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .shortcuts kbd {
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 5px;
+      padding: 2px 6px;
+      color: #e5e7eb;
+      font-family: monospace;
+    }
+    .cockpit {
+      width: 100%;
+      max-width: 1080px;
+      display: grid;
+      grid-template-columns: 1.35fr 0.95fr;
+      gap: 16px;
+    }
+    @media (max-width: 860px) {
+      .cockpit {
+        grid-template-columns: 1fr;
+      }
+    }
+    .windshield {
+      grid-column: 1 / -1;
+      position: relative;
+      height: 180px;
+      border-radius: 20px 20px 10px 10px;
+      overflow: hidden;
+      border: 2px solid rgba(148, 163, 184, 0.25);
+      background: linear-gradient(180deg, #1d3557 0%, #457b9d 55%, #374151 56%, #1f2937 100%);
+      box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.55);
+    }
+    .road-horizon {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 44%;
+      background: linear-gradient(180deg, #27272a 0%, #18181b 100%);
+    }
+    .road-line {
+      position: absolute;
+      bottom: 18px;
+      left: 50%;
+      width: 6px;
+      height: 36px;
+      background: rgba(250, 204, 21, 0.75);
+      transform: translateX(-50%);
+      border-radius: 3px;
+    }
+    .rain-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.25s;
+      background-image: repeating-linear-gradient(
+        102deg,
+        rgba(224, 242, 254, 0.35) 0px,
+        rgba(224, 242, 254, 0.35) 1px,
+        transparent 1px,
+        transparent 18px
+      );
+      animation: rainMove 0.45s linear infinite;
+    }
+    .rain-layer.active { opacity: 1; }
+    @keyframes rainMove {
+      from { background-position: 0 0; }
+      to { background-position: -36px 90px; }
+    }
+    .wiper {
+      position: absolute;
+      bottom: 8px;
+      width: 210px;
+      height: 6px;
+      background: #090d16;
+      border-radius: 999px;
+      transform-origin: left center;
+      transform: rotate(-12deg);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+    }
+    .wiper::after {
+      content: "";
+      position: absolute;
+      right: 8px;
+      top: -2px;
+      width: 140px;
+      height: 4px;
+      background: #334155;
+      border-radius: 4px;
+    }
+    .wiper.left { left: 22%; }
+    .wiper.right { left: 52%; }
+    .wiper.sweep-slow { animation: wiperSweep 1.6s ease-in-out infinite alternate; }
+    .wiper.sweep-fast { animation: wiperSweep 0.65s ease-in-out infinite alternate; }
+    @keyframes wiperSweep {
+      0% { transform: rotate(-12deg); }
+      100% { transform: rotate(-128deg); }
+    }
+    .windshield-badge {
+      position: absolute;
+      top: 12px;
+      left: 16px;
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+    }
+    .cluster-wheel-panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: 18px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .instrument-cluster {
+      background: #090c12;
+      border: 2px solid #263042;
+      border-radius: 16px;
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .turn-indicators {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .turn-arrow {
+      padding: 6px 12px;
+      border-radius: 8px;
+      background: #111827;
+      color: #4b5563;
+      transition: all 0.12s;
+    }
+    .turn-arrow.blink-on {
+      background: rgba(34, 197, 94, 0.22);
+      color: var(--accent-green);
+      box-shadow: 0 0 14px rgba(34, 197, 94, 0.55);
+    }
+    .gauges-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      text-align: center;
+    }
+    .gauge-box {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      padding: 10px 8px;
+    }
+    .gauge-val {
+      font-size: 24px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+    .gauge-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .warning-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+    .lamp {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #111827;
+      color: #6b7280;
+      border: 1px solid #1f2937;
+    }
+    .lamp.brake-on {
+      color: #fca5a5;
+      background: rgba(239, 68, 68, 0.22);
+      border-color: rgba(239, 68, 68, 0.6);
+    }
+    .lamp.wiper-on {
+      color: #93c5fd;
+      background: rgba(59, 130, 246, 0.22);
+      border-color: rgba(59, 130, 246, 0.6);
+    }
+    .lamp.highbeam-on {
+      color: #fde68a;
+      background: rgba(245, 158, 11, 0.22);
+      border-color: rgba(245, 158, 11, 0.6);
+    }
+    .wheel-stage {
+      position: relative;
+      height: 230px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .turn-stalk-mount {
+      position: absolute;
+      left: calc(50% - 172px);
+      top: 16%;
+      width: 48px;
+      height: 148px;
+      z-index: 3;
+      touch-action: none;
+    }
+    .turn-stalk-shaft {
+      position: absolute;
+      left: 50%;
+      top: 6px;
+      bottom: 6px;
+      width: 8px;
+      margin-left: -4px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #2a3444, #3d4a5c 50%, #2a3444);
+      border: 1px solid #475569;
+      pointer-events: none;
+    }
+    .turn-stalk-handle {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 56px;
+      height: 22px;
+      margin-left: -28px;
+      margin-top: -11px;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #6b7a8c, #475569);
+      border: 1px solid #94a3b8;
+      cursor: grab;
+      transition: transform 0.14s ease, background 0.14s, border-color 0.14s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      color: #e2e8f0;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+    }
+    .turn-stalk-handle:active { cursor: grabbing; }
+    .turn-stalk-handle.latched {
+      background: linear-gradient(180deg, #22c55e, #15803d);
+      border-color: #86efac;
+    }
+    .turn-stalk-hint {
+      position: absolute;
+      left: -4px;
+      right: -4px;
+      bottom: -2px;
+      text-align: center;
+      font-size: 8px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+    .stalk {
+      position: absolute;
+      top: 52%;
+      width: 92px;
+      height: 12px;
+      background: #334155;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.15s, background 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #e2e8f0;
+    }
+    .stalk.right { right: calc(50% - 155px); }
+    .stalk.right.active { background: #2563eb; }
+    .steering-wheel {
+      position: relative;
+      width: 184px;
+      height: 184px;
+      border-radius: 50%;
+      border: 18px solid #1f2937;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), inset 0 0 12px rgba(255, 255, 255, 0.08);
+      transition: transform 0.16s ease-out;
+      z-index: 2;
+      background: transparent;
+    }
+    .wheel-hub {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 64px;
+      height: 64px;
+      margin: -32px 0 0 -32px;
+      border-radius: 50%;
+      background: #111827;
+      border: 2px solid #374151;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .wheel-spoke-h {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 14px;
+      margin-top: -7px;
+      background: #1f2937;
+    }
+    .wheel-spoke-v {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      width: 14px;
+      height: 62px;
+      margin-left: -7px;
+      background: #1f2937;
+    }
+    .center-pedal-panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: 18px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .center-console {
+      background: #111622;
+      border: 1px solid #263248;
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .center-screen {
+      background: #090d16;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .btn-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+    button.ctrl-btn {
+      background: #1e293b;
+      color: var(--text-main);
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 9px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+    button.ctrl-btn:hover { background: #2b3a52; }
+    button.ctrl-btn.active-red {
+      background: rgba(239, 68, 68, 0.28);
+      border-color: var(--accent-red);
+      color: #fecaca;
+    }
+    button.ctrl-btn.active-green {
+      background: rgba(34, 197, 94, 0.25);
+      border-color: var(--accent-green);
+      color: #bbf7d0;
+    }
+    button.ctrl-btn.active-blue {
+      background: rgba(59, 130, 246, 0.25);
+      border-color: var(--accent-blue);
+      color: #bfdbfe;
+    }
+    .pedals-box {
+      background: #111622;
+      border: 1px solid #263248;
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .pedals-title {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .pedals-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .pedal {
+      height: 105px;
+      border-radius: 12px;
+      border: 2px solid #374151;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.08s, box-shadow 0.12s;
+    }
+    .pedal.brake {
+      background: linear-gradient(180deg, #3f1d24 0%, #271217 100%);
+      border-color: #991b1b;
+      color: #fecaca;
+    }
+    .pedal.throttle {
+      background: linear-gradient(180deg, #1b3626 0%, #112218 100%);
+      border-color: #166534;
+      color: #bbf7d0;
+    }
+    .pedal.pressed {
+      transform: translateY(5px) scale(0.98);
+      box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.65);
+    }
+    .pedal small {
+      font-weight: 400;
+      font-size: 11px;
+      opacity: 0.8;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <h1>科目一驾驶舱联动模拟器</h1>
+    <a class="top-link" href="index.html">→ 科目三视频训练</a>
+    <div class="shortcuts">
+      快捷键：<kbd>←</kbd> 左转 · <kbd>→</kbd> 右转 · <kbd>H</kbd> 双闪 · <kbd>W</kbd> 雨刷 · <kbd>Space</kbd> 刹车 · <kbd>↑</kbd> 油门
+    </div>
+  </div>
+  <div class="cockpit">
+    <div class="windshield">
+      <div class="road-horizon"><div class="road-line"></div></div>
+      <div id="rainLayer" class="rain-layer"></div>
+      <div id="wiperLeft" class="wiper left"></div>
+      <div id="wiperRight" class="wiper right"></div>
+      <div class="windshield-badge" id="windshieldStatus">天气/雨刷：关闭</div>
+    </div>
+    <div class="cluster-wheel-panel">
+      <div class="instrument-cluster">
+        <div class="turn-indicators">
+          <div id="leftTurnLamp" class="turn-arrow">◀ 左转向灯</div>
+          <div id="hazardTag" style="font-size: 12px; color: var(--text-muted);">灯光状态：正常</div>
+          <div id="rightTurnLamp" class="turn-arrow">右转向灯 ▶</div>
+        </div>
+        <div class="gauges-row">
+          <div class="gauge-box">
+            <div id="speedVal" class="gauge-val">0</div>
+            <div class="gauge-label">车速 (km/h)</div>
+          </div>
+          <div class="gauge-box">
+            <div id="gearVal" class="gauge-val" style="color: var(--accent-green);">D</div>
+            <div class="gauge-label">当前挡位</div>
+          </div>
+          <div class="gauge-box">
+            <div id="wiperStateVal" class="gauge-val" style="color: var(--accent-blue); font-size: 18px; line-height: 32px;">OFF</div>
+            <div class="gauge-label">雨刷模式</div>
+          </div>
+        </div>
+        <div class="warning-strip">
+          <span id="parkingLamp" class="lamp brake-on">(!) 驻车/手刹开启</span>
+          <span id="brakeLamp" class="lamp">制动踏板踩下</span>
+          <span id="highBeamLamp" class="lamp">远光灯</span>
+          <span id="wiperLamp" class="lamp">雨刷工作</span>
+        </div>
+      </div>
+      <div class="wheel-stage">
+        <div class="turn-stalk-mount" id="turnStalkMount" title="下滑左转 · 上滑右转">
+          <div class="turn-stalk-shaft" aria-hidden="true"></div>
+          <div id="leftStalk" class="turn-stalk-handle">转向</div>
+          <span class="turn-stalk-hint">↓左 ↑右</span>
+        </div>
+        <div id="steeringWheel" class="steering-wheel">
+          <div class="wheel-spoke-h"></div>
+          <div class="wheel-spoke-v"></div>
+          <div class="wheel-hub">AIRBAG</div>
+        </div>
+        <div id="rightStalk" class="stalk right" title="点击切换雨刷拨杆">雨刷拨杆</div>
+      </div>
+    </div>
+    <div class="center-pedal-panel">
+      <div class="center-console">
+        <div class="center-screen" id="centerScreen">
+          <strong>中控状态提示：</strong><br />
+          驻车状态：手刹已拉起 · 转向：关闭 · 雨刷：关闭
+        </div>
+        <div class="btn-grid">
+          <button id="btnLeftTurn" class="ctrl-btn">左转向灯 (←)</button>
+          <button id="btnRightTurn" class="ctrl-btn">右转向灯 (→)</button>
+          <button id="btnHazard" class="ctrl-btn active-red">危险报警闪光灯 (H)</button>
+          <button id="btnWiper" class="ctrl-btn">切换雨刷档位 (W)</button>
+          <button id="btnHighBeam" class="ctrl-btn">远光灯切换</button>
+          <button id="btnParking" class="ctrl-btn active-red">驻车手刹切换</button>
+        </div>
+      </div>
+      <div class="pedals-box">
+        <div class="pedals-title">驾驶舱踏板区（支持鼠标长按或键盘操作）</div>
+        <div class="pedals-row">
+          <div id="brakePedal" class="pedal brake">刹车踏板<small>按住 Space / ↓</small></div>
+          <div id="throttlePedal" class="pedal throttle">油门踏板<small>按住 ↑</small></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    const state = {
+      turn: "none",
+      hazard: false,
+      wiperMode: 0,
+      highBeam: false,
+      parkingBrake: true,
+      braking: false,
+      throttling: false,
+      speed: 0,
+      blinkPhase: false
+    };
+    const STALK_TRAVEL = 28;
+    const STALK_THRESH = 14;
+    let stalkDrag = { active: false, startY: 0, baseY: 0, offsetY: 0 };
+    let audioCtx = null;
+    function playTick() {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(920, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.045);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.05);
+      } catch (e) {}
+    }
+    const els = {
+      leftTurnLamp: document.getElementById("leftTurnLamp"),
+      rightTurnLamp: document.getElementById("rightTurnLamp"),
+      hazardTag: document.getElementById("hazardTag"),
+      speedVal: document.getElementById("speedVal"),
+      gearVal: document.getElementById("gearVal"),
+      wiperStateVal: document.getElementById("wiperStateVal"),
+      parkingLamp: document.getElementById("parkingLamp"),
+      brakeLamp: document.getElementById("brakeLamp"),
+      highBeamLamp: document.getElementById("highBeamLamp"),
+      wiperLamp: document.getElementById("wiperLamp"),
+      steeringWheel: document.getElementById("steeringWheel"),
+      leftStalk: document.getElementById("leftStalk"),
+      rightStalk: document.getElementById("rightStalk"),
+      wiperLeft: document.getElementById("wiperLeft"),
+      wiperRight: document.getElementById("wiperRight"),
+      rainLayer: document.getElementById("rainLayer"),
+      windshieldStatus: document.getElementById("windshieldStatus"),
+      centerScreen: document.getElementById("centerScreen"),
+      brakePedal: document.getElementById("brakePedal"),
+      throttlePedal: document.getElementById("throttlePedal"),
+      btnLeftTurn: document.getElementById("btnLeftTurn"),
+      btnRightTurn: document.getElementById("btnRightTurn"),
+      btnHazard: document.getElementById("btnHazard"),
+      btnWiper: document.getElementById("btnWiper"),
+      btnHighBeam: document.getElementById("btnHighBeam"),
+      btnParking: document.getElementById("btnParking")
+    };
+    function stalkOffsetForState() {
+      if (state.turn === "left") return STALK_TRAVEL;
+      if (state.turn === "right") return -STALK_TRAVEL;
+      return 0;
+    }
+    function applyTurnStalkVisual() {
+      const y = stalkDrag.active ? stalkDrag.offsetY : stalkOffsetForState();
+      els.leftStalk.style.transform = `translateY(${y}px)`;
+      els.leftStalk.classList.toggle("latched", !stalkDrag.active && state.turn !== "none");
+    }
+    function commitTurnStalkPosition() {
+      const y = stalkDrag.offsetY;
+      if (y > STALK_THRESH) state.turn = state.turn === "left" ? "none" : "left";
+      else if (y < -STALK_THRESH) state.turn = state.turn === "right" ? "none" : "right";
+      else if (Math.abs(y) <= 6) state.turn = "none";
+    }
+    function bindTurnStalkSlide() {
+      const handle = els.leftStalk;
+      const endDrag = () => {
+        if (!stalkDrag.active) return;
+        stalkDrag.active = false;
+        commitTurnStalkPosition();
+        stalkDrag.offsetY = stalkOffsetForState();
+        renderUI();
+      };
+      handle.addEventListener("pointerdown", (e) => {
+        handle.setPointerCapture(e.pointerId);
+        stalkDrag.active = true;
+        stalkDrag.startY = e.clientY;
+        stalkDrag.baseY = stalkOffsetForState();
+        stalkDrag.offsetY = stalkDrag.baseY;
+        applyTurnStalkVisual();
+      });
+      handle.addEventListener("pointermove", (e) => {
+        if (!stalkDrag.active) return;
+        const dy = e.clientY - stalkDrag.startY;
+        stalkDrag.offsetY = Math.max(-STALK_TRAVEL - 6, Math.min(STALK_TRAVEL + 6, stalkDrag.baseY + dy));
+        applyTurnStalkVisual();
+      });
+      handle.addEventListener("pointerup", endDrag);
+      handle.addEventListener("pointercancel", endDrag);
+    }
+    function renderUI() {
+      const leftActive = state.hazard || state.turn === "left";
+      const rightActive = state.hazard || state.turn === "right";
+      els.leftTurnLamp.classList.toggle("blink-on", leftActive && state.blinkPhase);
+      els.rightTurnLamp.classList.toggle("blink-on", rightActive && state.blinkPhase);
+      if (state.hazard) {
+        els.hazardTag.textContent = "危险报警闪光灯（双闪）开启";
+        els.hazardTag.style.color = "#fca5a5";
+      } else if (state.turn === "left") {
+        els.hazardTag.textContent = "左转向灯开启";
+        els.hazardTag.style.color = "#86efac";
+      } else if (state.turn === "right") {
+        els.hazardTag.textContent = "右转向灯开启";
+        els.hazardTag.style.color = "#86efac";
+      } else {
+        els.hazardTag.textContent = "灯光状态：正常";
+        els.hazardTag.style.color = "#9ca3af";
+      }
+      let wheelDeg = 0;
+      if (state.turn === "left") wheelDeg = -28;
+      if (state.turn === "right") wheelDeg = 28;
+      els.steeringWheel.style.transform = `rotate(${wheelDeg}deg)`;
+      applyTurnStalkVisual();
+      const wiperLabels = ["OFF", "LOW", "HIGH"];
+      const wiperCn = ["关闭", "低速刮刷", "高速刮刷"];
+      els.wiperStateVal.textContent = wiperLabels[state.wiperMode];
+      els.rightStalk.classList.toggle("active", state.wiperMode > 0);
+      els.btnWiper.classList.toggle("active-blue", state.wiperMode > 0);
+      els.wiperLamp.classList.toggle("wiper-on", state.wiperMode > 0);
+      els.wiperLeft.classList.remove("sweep-slow", "sweep-fast");
+      els.wiperRight.classList.remove("sweep-slow", "sweep-fast");
+      if (state.wiperMode === 1) {
+        els.wiperLeft.classList.add("sweep-slow");
+        els.wiperRight.classList.add("sweep-slow");
+        els.rainLayer.classList.add("active");
+        els.windshieldStatus.textContent = "雨刷：低速工作（模拟小雨）";
+      } else if (state.wiperMode === 2) {
+        els.wiperLeft.classList.add("sweep-fast");
+        els.wiperRight.classList.add("sweep-fast");
+        els.rainLayer.classList.add("active");
+        els.windshieldStatus.textContent = "雨刷：高速工作（模拟大雨）";
+      } else {
+        els.rainLayer.classList.remove("active");
+        els.windshieldStatus.textContent = "天气/雨刷：关闭";
+      }
+      els.parkingLamp.classList.toggle("brake-on", state.parkingBrake);
+      els.parkingLamp.textContent = state.parkingBrake ? "(!) 驻车/手刹开启" : "驻车/手刹已释放";
+      els.btnParking.classList.toggle("active-red", state.parkingBrake);
+      els.brakeLamp.classList.toggle("brake-on", state.braking);
+      els.brakePedal.classList.toggle("pressed", state.braking);
+      els.throttlePedal.classList.toggle("pressed", state.throttling);
+      els.highBeamLamp.classList.toggle("highbeam-on", state.highBeam);
+      els.btnHighBeam.classList.toggle("active-blue", state.highBeam);
+      els.btnLeftTurn.classList.toggle("active-green", state.turn === "left");
+      els.btnRightTurn.classList.toggle("active-green", state.turn === "right");
+      els.btnHazard.classList.toggle("active-red", state.hazard);
+      els.speedVal.textContent = Math.round(state.speed);
+      els.gearVal.textContent = state.parkingBrake ? "P" : (state.speed > 0 ? "D" : "N");
+      els.centerScreen.innerHTML = `
+        <strong>中控状态提示：</strong><br />
+        挡位/驻车：${state.parkingBrake ? "P挡（手刹拉起）" : "行驶准备（手刹已放）"} · 车速：${Math.round(state.speed)} km/h<br />
+        转向：${state.hazard ? "双闪开启" : (state.turn === "left" ? "左转向" : state.turn === "right" ? "右转向" : "关闭")} · 雨刷：${wiperCn[state.wiperMode]} · 远光：${state.highBeam ? "开启" : "关闭"}
+      `;
+    }
+    function toggleTurn(dir) {
+      state.turn = state.turn === dir ? "none" : dir;
+      renderUI();
+    }
+    function cycleWiper() {
+      state.wiperMode = (state.wiperMode + 1) % 3;
+      renderUI();
+    }
+    els.btnLeftTurn.addEventListener("click", () => toggleTurn("left"));
+    els.btnRightTurn.addEventListener("click", () => toggleTurn("right"));
+    bindTurnStalkSlide();
+    els.rightStalk.addEventListener("click", cycleWiper);
+    els.btnWiper.addEventListener("click", cycleWiper);
+    els.btnHazard.addEventListener("click", () => { state.hazard = !state.hazard; renderUI(); });
+    els.btnHighBeam.addEventListener("click", () => { state.highBeam = !state.highBeam; renderUI(); });
+    els.btnParking.addEventListener("click", () => {
+      state.parkingBrake = !state.parkingBrake;
+      if (state.parkingBrake) state.speed = 0;
+      renderUI();
+    });
+    function bindHold(el, key) {
+      const down = () => { state[key] = true; renderUI(); };
+      const up = () => { state[key] = false; renderUI(); };
+      el.addEventListener("mousedown", down);
+      window.addEventListener("mouseup", up);
+      el.addEventListener("touchstart", (e) => { e.preventDefault(); down(); });
+      window.addEventListener("touchend", up);
+    }
+    bindHold(els.brakePedal, "braking");
+    bindHold(els.throttlePedal, "throttling");
+    window.addEventListener("keydown", (e) => {
+      if (e.repeat) return;
+      if (e.key === "ArrowLeft") toggleTurn("left");
+      else if (e.key === "ArrowRight") toggleTurn("right");
+      else if (e.key.toLowerCase() === "h") { state.hazard = !state.hazard; renderUI(); }
+      else if (e.key.toLowerCase() === "w") cycleWiper();
+      else if (e.key === " " || e.key === "ArrowDown") { e.preventDefault(); state.braking = true; renderUI(); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); state.throttling = true; renderUI(); }
+    });
+    window.addEventListener("keyup", (e) => {
+      if (e.key === " " || e.key === "ArrowDown") { state.braking = false; renderUI(); }
+      else if (e.key === "ArrowUp") { state.throttling = false; renderUI(); }
+    });
+    setInterval(() => {
+      const anyBlink = state.hazard || state.turn !== "none";
+      if (anyBlink) {
+        state.blinkPhase = !state.blinkPhase;
+        if (state.blinkPhase) playTick();
+      } else state.blinkPhase = false;
+      renderUI();
+    }, 350);
+    setInterval(() => {
+      if (state.braking) state.speed = Math.max(0, state.speed - 4.5);
+      else if (!state.parkingBrake && state.throttling) state.speed = Math.min(120, state.speed + 1.8);
+      else state.speed = Math.max(0, state.speed - 0.6);
+      renderUI();
+    }, 50);
+    renderUI();
+  </script>
+</body>
+</html>
