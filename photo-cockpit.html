@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>实拍中控交互模拟器（支持热区校准）</title>
+  <style>
+    * { box-sizing: border-box; user-select: none; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #0b0f17;
+      color: #f3f4f6;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 14px;
+      gap: 12px;
+    }
+    .toolbar {
+      width: 100%;
+      max-width: 1120px;
+      background: rgba(24, 30, 44, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .status-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      font-size: 13px;
+    }
+    .pill {
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #172030;
+      border: 1px solid #2b3a55;
+      color: #cbd5e1;
+    }
+    .pill.green {
+      background: rgba(34, 197, 94, 0.2);
+      border-color: #22c55e;
+      color: #86efac;
+      font-weight: 700;
+    }
+    .pill.red {
+      background: rgba(239, 68, 68, 0.22);
+      border-color: #ef4444;
+      color: #fca5a5;
+      font-weight: 700;
+    }
+    .pill.blue {
+      background: rgba(59, 130, 246, 0.22);
+      border-color: #3b82f6;
+      color: #93c5fd;
+      font-weight: 700;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+  .nav-link {
+      font-size: 12px;
+      color: #86efac;
+      text-decoration: none;
+      padding: 6px 10px;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      background: #1e293b;
+    }
+    .nav-link:hover { background: #2d3d56; }
+    button {
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 6px 11px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: #2d3d56; }
+    button.active {
+      background: #2563eb;
+      border-color: #60a5fa;
+    }
+    .stage-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 1120px;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: #05070b;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65);
+    }
+    .stage-wrap img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    .hotspot {
+      position: absolute;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: transparent;
+      border: 2px solid transparent;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .calibrating .hotspot {
+      border: 2px dashed rgba(250, 204, 21, 0.85);
+      background: rgba(250, 204, 21, 0.14);
+      color: #fef08a;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+    }
+    .hotspot.selected {
+      border: 2px solid #38bdf8 !important;
+      background: rgba(56, 189, 248, 0.25) !important;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
+    }
+    .hotspot.lit-green {
+      background: rgba(34, 197, 94, 0.25);
+      border-color: rgba(34, 197, 94, 0.85);
+      box-shadow: 0 0 18px rgba(34, 197, 94, 0.6);
+    }
+    .hotspot.lit-red {
+      background: rgba(239, 68, 68, 0.28);
+      border-color: rgba(239, 68, 68, 0.9);
+      box-shadow: 0 0 18px rgba(239, 68, 68, 0.65);
+    }
+    .hotspot.lit-blue {
+      background: rgba(59, 130, 246, 0.26);
+      border-color: rgba(59, 130, 246, 0.9);
+      box-shadow: 0 0 18px rgba(59, 130, 246, 0.6);
+    }
+    .dash-lamp {
+      position: absolute;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 800;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.1s;
+      background: rgba(0, 0, 0, 0.72);
+    }
+    .dash-lamp.on { opacity: 1; }
+    .calibrator-box {
+      width: 100%;
+      max-width: 1120px;
+      background: #121826;
+      border: 1px solid #263248;
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 12px;
+    }
+    .calibrator-box.show { display: flex; }
+    .slider-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      align-items: center;
+    }
+    textarea {
+      width: 100%;
+      height: 84px;
+      background: #090d16;
+      color: #a5f3fc;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      resize: vertical;
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <div class="status-strip">
+      <span id="stLeftTurn" class="pill">左转向：关</span>
+      <span id="stRightTurn" class="pill">右转向：关</span>
+      <span id="stHazard" class="pill">双闪：关</span>
+      <span id="stWiper" class="pill">雨刷：关</span>
+      <span id="stBrake" class="pill">刹车：松开</span>
+      <span id="stSpeed" class="pill">车速：0 km/h</span>
+    </div>
+    <div class="actions">
+      <a class="nav-link" href="index.html">← 科目三训练</a>
+      <label style="font-size: 12px; cursor: pointer; background: #1e293b; padding: 6px 10px; border-radius: 8px; border: 1px solid #334155;">
+        换底图
+        <input id="fileInput" type="file" accept="image/*" style="display: none;" />
+      </label>
+      <button id="btnToggleCalibrate" type="button">校准热点位置</button>
+      <button id="btnResetState" type="button">重置状态</button>
+    </div>
+  </div>
+  <div id="stageWrap" class="stage-wrap">
+    <img id="carImg" src="my_car.webp" alt="中控实拍图" />
+    <div id="lampLeft" class="dash-lamp" style="left: 22%; top: 22%; color: #4ade80;">◀ 左转</div>
+    <div id="lampRight" class="dash-lamp" style="left: 33%; top: 22%; color: #4ade80;">右转 ▶</div>
+    <div id="lampBrake" class="dash-lamp" style="left: 27%; top: 34%; color: #f87171;">(●) 刹车中</div>
+    <div id="lampWiper" class="dash-lamp" style="left: 25%; top: 39%; color: #60a5fa;">雨刷工作</div>
+  </div>
+  <div id="calibratorBox" class="calibrator-box">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+      <strong>热点校准器</strong>（先点下方或画面中的热区选中，再拖动滑块对齐你照片里的实际位置）
+      <select id="hotspotSelect" style="background: #1e293b; color: #fff; border: 1px solid #334155; border-radius: 6px; padding: 4px 8px;"></select>
+    </div>
+    <div class="slider-row">
+      <label>左边距 (%) <input id="slLeft" type="range" min="0" max="95" step="0.5" /></label>
+      <label>上边距 (%) <input id="slTop" type="range" min="0" max="95" step="0.5" /></label>
+      <label>宽度 (%) <input id="slWidth" type="range" min="3" max="45" step="0.5" /></label>
+      <label>高度 (%) <input id="slHeight" type="range" min="3" max="45" step="0.5" /></label>
+    </div>
+    <textarea id="coordOutput" readonly></textarea>
+  </div>
+  <script>
+    const STORAGE_KEY = "ke3-photo-hotspots-v1";
+    const hotspotsConfig = [
+      { id: "leftTurn",  label: "左转向", left: 14, top: 38, width: 7,  height: 10 },
+      { id: "rightTurn", label: "右转向", left: 22, top: 38, width: 7,  height: 10 },
+      { id: "hazard",    label: "双闪",   left: 48, top: 18, width: 6,  height: 5 },
+      { id: "wiper",     label: "雨刷",   left: 30, top: 38, width: 7,  height: 10 },
+      { id: "brake",     label: "刹车",   left: 8,  top: 72, width: 14, height: 16 }
+    ];
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length) {
+          hotspotsConfig.length = 0;
+          parsed.forEach((item) => hotspotsConfig.push(item));
+        }
+      }
+    } catch (_) {}
+    const state = {
+      leftTurn: false,
+      rightTurn: false,
+      hazard: false,
+      wiperLevel: 0,
+      braking: false,
+      speed: 0,
+      blinkOn: false,
+      calibrating: false,
+      selectedId: "leftTurn"
+    };
+    const stageWrap = document.getElementById("stageWrap");
+    const carImg = document.getElementById("carImg");
+    const hotspotElements = {};
+    function createHotspots() {
+      hotspotsConfig.forEach((cfg) => {
+        const el = document.createElement("div");
+        el.className = "hotspot";
+        el.dataset.id = cfg.id;
+        el.textContent = cfg.label;
+        applyHotspotRect(el, cfg);
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (state.calibrating) {
+            selectHotspot(cfg.id);
+            return;
+          }
+          triggerAction(cfg.id);
+        });
+        stageWrap.appendChild(el);
+        hotspotElements[cfg.id] = el;
+      });
+    }
+    function applyHotspotRect(el, cfg) {
+      el.style.left = cfg.left + "%";
+      el.style.top = cfg.top + "%";
+      el.style.width = cfg.width + "%";
+      el.style.height = cfg.height + "%";
+    }
+    function triggerAction(id) {
+      if (id === "leftTurn") {
+        state.leftTurn = !state.leftTurn;
+        if (state.leftTurn) state.rightTurn = false;
+      } else if (id === "rightTurn") {
+        state.rightTurn = !state.rightTurn;
+        if (state.rightTurn) state.leftTurn = false;
+      } else if (id === "hazard") {
+        state.hazard = !state.hazard;
+      } else if (id === "wiper") {
+        state.wiperLevel = (state.wiperLevel + 1) % 3;
+      } else if (id === "brake") {
+        state.braking = !state.braking;
+        if (state.braking) state.speed = Math.max(0, state.speed - 25);
+      }
+      render();
+    }
+    function render() {
+      const showLeft = state.hazard || state.leftTurn;
+      const showRight = state.hazard || state.rightTurn;
+      const stLeft = document.getElementById("stLeftTurn");
+      const stRight = document.getElementById("stRightTurn");
+      const stHazard = document.getElementById("stHazard");
+      const stWiper = document.getElementById("stWiper");
+      const stBrake = document.getElementById("stBrake");
+      const stSpeed = document.getElementById("stSpeed");
+      stLeft.textContent = "左转向：" + (showLeft ? "开" : "关");
+      stLeft.className = "pill" + (showLeft ? " green" : "");
+      stRight.textContent = "右转向：" + (showRight ? "开" : "关");
+      stRight.className = "pill" + (showRight ? " green" : "");
+      stHazard.textContent = "双闪：" + (state.hazard ? "开" : "关");
+      stHazard.className = "pill" + (state.hazard ? " red" : "");
+      const wiperText = ["关", "低速", "高速"][state.wiperLevel];
+      stWiper.textContent = "雨刷：" + wiperText;
+      stWiper.className = "pill" + (state.wiperLevel > 0 ? " blue" : "");
+      stBrake.textContent = "刹车：" + (state.braking ? "踩下" : "松开");
+      stBrake.className = "pill" + (state.braking ? " red" : "");
+      stSpeed.textContent = "车速：" + Math.round(state.speed) + " km/h";
+      document.getElementById("lampLeft").classList.toggle("on", showLeft && state.blinkOn);
+      document.getElementById("lampRight").classList.toggle("on", showRight && state.blinkOn);
+      document.getElementById("lampBrake").classList.toggle("on", state.braking);
+      document.getElementById("lampWiper").classList.toggle("on", state.wiperLevel > 0);
+      hotspotElements.leftTurn.classList.toggle("lit-green", showLeft && state.blinkOn);
+      hotspotElements.rightTurn.classList.toggle("lit-green", showRight && state.blinkOn);
+      hotspotElements.hazard.classList.toggle("lit-red", state.hazard && state.blinkOn);
+      hotspotElements.wiper.classList.toggle("lit-blue", state.wiperLevel > 0);
+      hotspotElements.brake.classList.toggle("lit-red", state.braking);
+    }
+    const hotspotSelect = document.getElementById("hotspotSelect");
+    const slLeft = document.getElementById("slLeft");
+    const slTop = document.getElementById("slTop");
+    const slWidth = document.getElementById("slWidth");
+    const slHeight = document.getElementById("slHeight");
+    const coordOutput = document.getElementById("coordOutput");
+    function persistHotspots() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(hotspotsConfig));
+    }
+    function initCalibrator() {
+      hotspotsConfig.forEach((cfg) => {
+        const opt = document.createElement("option");
+        opt.value = cfg.id;
+        opt.textContent = `${cfg.label} (${cfg.id})`;
+        hotspotSelect.appendChild(opt);
+      });
+      hotspotSelect.addEventListener("change", () => selectHotspot(hotspotSelect.value));
+      [slLeft, slTop, slWidth, slHeight].forEach((input) => {
+        input.addEventListener("input", () => {
+          const cfg = hotspotsConfig.find((item) => item.id === state.selectedId);
+          if (!cfg) return;
+          cfg.left = parseFloat(slLeft.value);
+          cfg.top = parseFloat(slTop.value);
+          cfg.width = parseFloat(slWidth.value);
+          cfg.height = parseFloat(slHeight.value);
+          applyHotspotRect(hotspotElements[cfg.id], cfg);
+          updateCoordOutput();
+          persistHotspots();
+        });
+      });
+      selectHotspot(state.selectedId);
+    }
+    function selectHotspot(id) {
+      state.selectedId = id;
+      hotspotSelect.value = id;
+      Object.keys(hotspotElements).forEach((k) => {
+        hotspotElements[k].classList.toggle("selected", k === id);
+      });
+      const cfg = hotspotsConfig.find((item) => item.id === id);
+      if (cfg) {
+        slLeft.value = cfg.left;
+        slTop.value = cfg.top;
+        slWidth.value = cfg.width;
+        slHeight.value = cfg.height;
+      }
+      updateCoordOutput();
+    }
+    function updateCoordOutput() {
+      coordOutput.value = JSON.stringify(hotspotsConfig, null, 2);
+    }
+    document.getElementById("btnToggleCalibrate").addEventListener("click", (e) => {
+      state.calibrating = !state.calibrating;
+      e.target.classList.toggle("active", state.calibrating);
+      stageWrap.classList.toggle("calibrating", state.calibrating);
+      document.getElementById("calibratorBox").classList.toggle("show", state.calibrating);
+      if (state.calibrating) selectHotspot(state.selectedId);
+    });
+    document.getElementById("btnResetState").addEventListener("click", () => {
+      state.leftTurn = false;
+      state.rightTurn = false;
+      state.hazard = false;
+      state.wiperLevel = 0;
+      state.braking = false;
+      state.speed = 0;
+      render();
+    });
+    document.getElementById("fileInput").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      carImg.src = URL.createObjectURL(file);
+    });
+    setInterval(() => {
+      if (state.leftTurn || state.rightTurn || state.hazard) {
+        state.blinkOn = !state.blinkOn;
+      } else {
+        state.blinkOn = false;
+      }
+      if (!state.braking && (state.leftTurn || state.rightTurn || state.wiperLevel > 0)) {
+        state.speed = Math.min(60, state.speed + 4);
+      } else if (state.braking) {
+        state.speed = Math.max(0, state.speed - 8);
+      }
+      render();
+    }, 350);
+    createHotspots();
+    initCalibrator();
+    render();
+  </script>
+</body>
+</html>
